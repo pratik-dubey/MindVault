@@ -22,6 +22,7 @@ const db_1 = require("./db");
 const dotenv_1 = __importDefault(require("dotenv"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const middleware_1 = require("./middleware");
+const utils_1 = require("./utils");
 dotenv_1.default.config();
 const jwt_pass = "jwt_secret";
 const dbString = process.env.db_connection_string || "";
@@ -88,15 +89,84 @@ app.get("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(
         content,
     });
 }));
-app.delete("/api/v1/content", (req, res) => { });
-app.post("/api/v1/brain/share", (req, res) => { });
-app.get("/api/v1/brain/:shareLink", (req, res) => { });
+app.delete("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const contentId = req.body.contentId;
+    yield db_1.ContentModel.deleteMany({
+        contentId,
+        // @ts-ignore
+        userId: req.userId,
+    });
+    res.json({
+        message: "Content deleted",
+    });
+}));
+app.post("/api/v1/brain/share", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { share } = req.body;
+    if (share) {
+        const existingLink = yield db_1.linkModel.findOne({
+            //@ts-ignore
+            userId: req.userId,
+        });
+        if (existingLink) {
+            res.json({
+                hash: existingLink.hash,
+            });
+            return;
+        }
+        const hashed = (0, utils_1.hashGen)(10);
+        yield db_1.linkModel.create({
+            // @ts-ignore
+            userId: req.userId,
+            hash: hashed,
+        });
+        res.json({
+            message: "/share/" + hashed,
+        });
+    }
+    else {
+        yield db_1.linkModel.deleteOne({
+            //@ts-ignore
+            userId: req.userId,
+        });
+        res.json({
+            message: "Removed Link",
+        });
+    }
+}));
+app.get("/api/v1/brain/:shareLink", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const hash = req.params.shareLink;
+    const link = yield db_1.linkModel.findOne({
+        hash,
+    });
+    if (!link) {
+        res.status(411).json({
+            message: "Incorrect input/ Entry not found",
+        });
+        return;
+    }
+    const content = yield db_1.ContentModel.find({
+        userId: link.userId,
+    });
+    const user = yield db_1.UserModel.findOne({
+        _id: link.userId,
+    });
+    if (!user) {
+        res.status(411).json({
+            message: "User not found , error should not happen ideally",
+        });
+        return;
+    }
+    res.json({
+        username: user.username,
+        content: content,
+    });
+}));
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield mongoose_1.default.connect(dbString);
             console.log("✅ Connected to the database");
-            const PORT = 3001;
+            const PORT = 6005;
             app.listen(PORT, () => {
                 console.log(`🚀 Server is running on http://localhost:${PORT}`);
             });

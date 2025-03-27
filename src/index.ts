@@ -6,11 +6,12 @@ import express from "express";
 // we can use // @ts-ignorets line above any typescript code to ignore type errors
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { UserModel, ContentModel } from "./db";
+import { UserModel, ContentModel, linkModel } from "./db";
 import dotenv from "dotenv";
-import bcrypt from "bcrypt";
+import bcrypt, { hash } from "bcrypt";
 import { Request, Response } from "express";
 import { userMiddleware } from "./middleware";
+import { hashGen } from "./utils";
 
 dotenv.config();
 const jwt_pass = "jwt_secret";
@@ -105,15 +106,82 @@ app.delete("/api/v1/content", userMiddleware, async (req, res) => {
     message: "Content deleted",
   });
 });
-app.post("/api/v1/brain/share", (req, res) => {});
-app.get("/api/v1/brain/:shareLink", (req, res) => {});
+app.post("/api/v1/brain/share", userMiddleware, async (req, res) => {
+  const { share } = req.body;
+  if (share) {
+    const existingLink = await linkModel.findOne({
+      //@ts-ignore
+      userId: req.userId,
+    });
+
+    if (existingLink) {
+      res.json({
+        hash: existingLink.hash,
+      });
+      return;
+    }
+    const hashed = hashGen(10);
+    await linkModel.create({
+      // @ts-ignore
+      userId: req.userId,
+      hash: hashed,
+    });
+
+    res.json({
+      message: "/share/" + hashed,
+    });
+  } else {
+    await linkModel.deleteOne({
+      //@ts-ignore
+      userId: req.userId,
+    });
+
+    res.json({
+      message: "Removed Link",
+    });
+  }
+});
+app.get("/api/v1/brain/:shareLink", async (req, res) => {
+  const hash = req.params.shareLink;
+
+  const link = await linkModel.findOne({
+    hash,
+  });
+
+  if (!link) {
+    res.status(411).json({
+      message: "Incorrect input/ Entry not found",
+    });
+    return;
+  }
+
+  const content = await ContentModel.find({
+    userId: link.userId,
+  });
+
+  const user = await UserModel.findOne({
+    _id: link.userId,
+  });
+
+  if (!user) {
+    res.status(411).json({
+      message: "User not found , error should not happen ideally",
+    });
+    return;
+  }
+
+  res.json({
+    username: user.username,
+    content: content,
+  });
+});
 
 async function main() {
   try {
     await mongoose.connect(dbString);
     console.log("✅ Connected to the database");
 
-    const PORT = 3001;
+    const PORT = 6005;
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
     });
