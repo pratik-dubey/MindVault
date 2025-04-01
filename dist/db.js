@@ -47,6 +47,7 @@ const Content = new mongoose_2.Schema({
     link: String,
     tags: [{ type: mongoose_1.default.Types.ObjectId, ref: "Tag" }],
     userId: { type: mongoose_1.default.Types.ObjectId, ref: "user" },
+    type: String,
 });
 const linkSchema = new mongoose_2.Schema({
     userId: { type: mongoose_1.default.Types.ObjectId, ref: "user", unique: true },

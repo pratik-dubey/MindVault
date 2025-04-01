@@ -13,6 +13,7 @@ const Content = new Schema({
   link: String,
   tags: [{ type: mongoose.Types.ObjectId, ref: "Tag" }],
   userId: { type: mongoose.Types.ObjectId, ref: "user" },
+  type: String,
 });
 
 const linkSchema = new Schema({

@@ -12,7 +12,11 @@ import bcrypt, { hash } from "bcrypt";
 import { Request, Response } from "express";
 import { userMiddleware } from "./middleware";
 import { hashGen } from "./utils";
+import cors from "cors";
 
+const app = express();
+app.use(express.json());
+app.use(cors());
 dotenv.config();
 const jwt_pass = "jwt_secret";
 
@@ -21,9 +25,6 @@ if (!dbString) {
   console.error("❌ Database connection string is missing!");
   process.exit(1);
 }
-
-const app = express();
-app.use(express.json());
 
 app.post("/api/v1/signup", async (req, res) => {
   try {
@@ -68,19 +69,38 @@ app.post("/api/v1/signin", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/v1/content", userMiddleware, async (req, res) => {
-  const { link, title } = req.body;
+// app.post("/api/v1/content", userMiddleware, async (req, res) => {
+//   const { link, title } = req.body;
 
+//   await ContentModel.create({
+//     link,
+//     title,
+//     type: req.body.type,
+//     tags: [],
+//     // @ts-ignore
+//     userId: req.userId,
+//   });
+
+//   res.json({
+//     message: "Content Added",
+//   });
+// });
+
+app.post("/api/v1/content", userMiddleware, async (req, res) => {
+  const link = req.body.link;
+  const type = req.body.type;
+  const title = req.body.title;
   await ContentModel.create({
     link,
+    type,
     title,
-    tags: [],
     // @ts-ignore
     userId: req.userId,
+    tags: [],
   });
 
   res.json({
-    message: "Content Added",
+    message: "Content added",
   });
 });
 app.get("/api/v1/content", userMiddleware, async (req, res) => {
@@ -98,7 +118,7 @@ app.delete("/api/v1/content", userMiddleware, async (req, res) => {
   const contentId = req.body.contentId;
 
   await ContentModel.deleteMany({
-    contentId,
+    _id: contentId,
     // @ts-ignore
     userId: req.userId,
   });
@@ -181,7 +201,7 @@ async function main() {
     await mongoose.connect(dbString);
     console.log("✅ Connected to the database");
 
-    const PORT = 6005;
+    const PORT = 3000;
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
     });

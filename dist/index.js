@@ -23,6 +23,10 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const middleware_1 = require("./middleware");
 const utils_1 = require("./utils");
+const cors_1 = __importDefault(require("cors"));
+const app = (0, express_1.default)();
+app.use(express_1.default.json());
+app.use((0, cors_1.default)());
 dotenv_1.default.config();
 const jwt_pass = "jwt_secret";
 const dbString = process.env.db_connection_string || "";
@@ -30,8 +34,6 @@ if (!dbString) {
     console.error("❌ Database connection string is missing!");
     process.exit(1);
 }
-const app = (0, express_1.default)();
-app.use(express_1.default.json());
 app.post("/api/v1/signup", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { username, password } = req.body;
@@ -66,17 +68,34 @@ app.post("/api/v1/signin", (req, res) => __awaiter(void 0, void 0, void 0, funct
         res.status(500).json({ message: "Error during sign-in", error });
     }
 }));
+// app.post("/api/v1/content", userMiddleware, async (req, res) => {
+//   const { link, title } = req.body;
+//   await ContentModel.create({
+//     link,
+//     title,
+//     type: req.body.type,
+//     tags: [],
+//     // @ts-ignore
+//     userId: req.userId,
+//   });
+//   res.json({
+//     message: "Content Added",
+//   });
+// });
 app.post("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { link, title } = req.body;
+    const link = req.body.link;
+    const type = req.body.type;
+    const title = req.body.title;
     yield db_1.ContentModel.create({
         link,
+        type,
         title,
-        tags: [],
         // @ts-ignore
         userId: req.userId,
+        tags: [],
     });
     res.json({
-        message: "Content Added",
+        message: "Content added",
     });
 }));
 app.get("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -92,7 +111,7 @@ app.get("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(
 app.delete("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const contentId = req.body.contentId;
     yield db_1.ContentModel.deleteMany({
-        contentId,
+        _id: contentId,
         // @ts-ignore
         userId: req.userId,
     });
@@ -166,7 +185,7 @@ function main() {
         try {
             yield mongoose_1.default.connect(dbString);
             console.log("✅ Connected to the database");
-            const PORT = 6005;
+            const PORT = 3000;
             app.listen(PORT, () => {
                 console.log(`🚀 Server is running on http://localhost:${PORT}`);
             });
