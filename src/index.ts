@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { UserModel, ContentModel, linkModel } from "./db";
 import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { Request, Response } from "express";
 import { userMiddleware } from "./middleware";
 import { hashGen } from "./utils";
@@ -22,11 +22,37 @@ const jwt_pass = "jwt_secret";
 
 const dbString = process.env.db_connection_string || "";
 
+async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derivedKey = await new Promise<Buffer>((resolve, reject) => {
+    crypto.scrypt(password, salt, 64, (err, key) => {
+      if (err) reject(err);
+      else resolve(key);
+    });
+  });
+  return `${salt}:${derivedKey.toString("hex")}`;
+}
+
+async function verifyPassword(
+  password: string,
+  stored: string
+): Promise<boolean> {
+  const [salt, key] = stored.split(":");
+  if (!salt || !key) return false;
+  const derivedKey = await new Promise<Buffer>((resolve, reject) => {
+    crypto.scrypt(password, salt, 64, (err, k) => {
+      if (err) reject(err);
+      else resolve(k);
+    });
+  });
+  return crypto.timingSafeEqual(Buffer.from(key, "hex"), derivedKey);
+}
+
 app.post("/api/v1/signup", async (req, res) => {
   try {
     const { username, password } = req.body;
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     await UserModel.create({ username, password: hashedPassword });
 
@@ -46,10 +72,7 @@ app.post("/api/v1/signin", async (req, res) => {
       return;
     }
 
-    const isPasswordTrue = await bcrypt.compare(
-      password,
-      existingUser.password
-    );
+    const isPasswordTrue = await verifyPassword(password, existingUser.password);
     if (!isPasswordTrue) {
       res.status(401).json({ message: "Invalid username or password" });
       return;
