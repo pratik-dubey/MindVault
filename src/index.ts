@@ -21,10 +21,6 @@ dotenv.config();
 const jwt_pass = "jwt_secret";
 
 const dbString = process.env.db_connection_string || "";
-if (!dbString) {
-  console.error("❌ Database connection string is missing!");
-  process.exit(1);
-}
 
 app.post("/api/v1/signup", async (req, res) => {
   try {
