@@ -185,7 +185,7 @@ function main() {
         try {
             yield mongoose_1.default.connect(dbString);
             console.log("✅ Connected to the database");
-            const PORT = 3000;
+            const PORT = 3050;
             app.listen(PORT, () => {
                 console.log(`🚀 Server is running on http://localhost:${PORT}`);
             });

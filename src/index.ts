@@ -40,7 +40,7 @@ app.post("/api/v1/signup", async (req, res) => {
   }
 });
 
-app.post("/api/v1/signin", async (req: Request, res: Response) => {
+app.post("/api/v1/signin", async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -201,7 +201,7 @@ async function main() {
     await mongoose.connect(dbString);
     console.log("✅ Connected to the database");
 
-    const PORT = 3000;
+    const PORT = 3050;
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
     });
