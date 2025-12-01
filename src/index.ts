@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { UserModel, ContentModel, linkModel } from "./db";
 import dotenv from "dotenv";
-import bcrypt, { hash } from "bcrypt";
+import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
 import { userMiddleware } from "./middleware";
 import { hashGen } from "./utils";
