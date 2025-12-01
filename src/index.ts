@@ -196,18 +196,41 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
   });
 });
 
-async function main() {
-  try {
-    await mongoose.connect(dbString);
-    console.log("✅ Connected to the database");
+// async function main() {
+//   try {
+//     await mongoose.connect(dbString);
+//     console.log("✅ Connected to the database");
 
-    const PORT = 3050;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    });
-  } catch (err) {
-    console.error("❌ Database connection failed:", err);
-    process.exit(1); // Exit if database connection fails
+//     const PORT = 3050;
+//     app.listen(PORT, () => {
+//       console.log(`🚀 Server is running on http://localhost:${PORT}`);
+//     });
+//   } catch (err) {
+//     console.error("❌ Database connection failed:", err);
+//     process.exit(1); // Exit if database connection fails
+//   }
+// }
+// main();
+
+let isConnected = false;
+
+async function connectDB() {
+  if (!dbString) {
+    throw new Error("Database connection string is missing");
+  }
+  if (!isConnected) {
+    await mongoose.connect(dbString);
+    isConnected = true;
+    console.log("✅ Connected to the database");
   }
 }
-main();
+
+export default async function handler(req: any, res: any) {
+  try {
+    await connectDB();
+    return app(req, res); // Express app को request दो
+  } catch (err) {
+    console.error("❌ Error in handler:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
